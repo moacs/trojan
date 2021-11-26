@@ -1,4 +1,5 @@
 #!/bin/bash
+
 yellow(){
     echo -e "\033[33m\033[01m$1\033[0m"
 }
@@ -13,7 +14,7 @@ release="ubuntu"
 systemPackage="apt-get"
 systempwd="/lib/systemd/system/"
 
-function install_trojan(){
+install_trojan(){
 systemctl stop ufw
 systemctl disable ufw
 apt update
@@ -26,11 +27,12 @@ read trojan_passwd
 
 real_addr=`ping ${your_domain} -c 1 | sed '1{s/[^(]*(//;s/).*//;q}'`
 local_addr=`curl ipv4.icanhazip.com`
-if [ $real_addr == $local_addr ] ; then
+if [ $real_addr != $local_addr ] ; then
 	green "=========================================="
-	green "       域名解析正常，开始安装trojan"
+	red "域名解析地址  $real_addr 与本地地址 $local_addr 不符"
 	green "=========================================="
-	sleep 1s
+    exit 1
+fi
 cat > /etc/nginx/nginx.conf <<-EOF
 user  root;
 worker_processes  1;
@@ -59,14 +61,21 @@ http {
     }
 }
 EOF
-# /etc/letsencrypt/live/sight.moacs.com
-#   ssl_certificate /etc/letsencrypt/live/$your_domain/fullchain.pem;
-#     ssl_certificate_key /etc/letsencrypt/live/$your_domain/privkey.pem;
 	systemctl restart nginx.service
 	#申请https证书
     certbot certonly --agree-tos --email moacs@msn.com --webroot -w /usr/share/nginx/html -d $your_domain
 	if test -s /etc/letsencrypt/live/$your_domain/fullchain.pem; then
-        cd /srv
+	green "=========================================="
+	yellow "证书申请成功"
+	green "=========================================="
+    else
+	green "=========================================="
+	red "证书申请失败"
+	green "=========================================="
+    exit 1
+    fi
+
+    cd /srv
 	wget https://github.com/trojan-gfw/trojan/releases/download/v1.14.0/trojan-1.14.0-linux-amd64.tar.xz
 	tar xf trojan-1.*
 	rm -rf /srv/trojan/config.json
@@ -82,8 +91,8 @@ EOF
     ],
     "log_level": 1,
     "ssl": {
-        "cert": "/usr/src/trojan-cert/fullchain.cer",
-        "key": "/usr/src/trojan-cert/private.key",
+        "cert": "/etc/letsencrypt/live/$your_domain/fullchain.pem",
+        "key": "/etc/letsencrypt/live/$your_domain/privkey.pem",
         "key_password": "",
         "cipher_tls13":"TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_256_GCM_SHA384",
 	"prefer_server_cipher": true,
@@ -137,7 +146,7 @@ EOF
 	green "Trojan已安装完成"
 }
 
-function remove_trojan(){
+remove_trojan(){
     red "================================"
     red "即将卸载trojan"
     red "同时卸载安装的nginx"
@@ -145,11 +154,7 @@ function remove_trojan(){
     systemctl stop trojan
     systemctl disable trojan
     rm -f ${systempwd}trojan.service
-    if [ "$release" == "centos" ]; then
-        yum remove -y nginx
-    else
-        apt autoremove -y nginx
-    fi
+    apt autoremove -y nginx
     rm -rf /usr/src/trojan*
     rm -rf /usr/share/nginx/html/*
     green "=============="
@@ -157,7 +162,7 @@ function remove_trojan(){
     green "=============="
 }
 
-function bbr_boost_sh(){
+bbr_boost_sh(){
     bash <(curl -L -s -k "https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh")
 }
 
