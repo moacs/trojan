@@ -13,17 +13,15 @@ red(){
 release="ubuntu"
 systemPackage="apt-get"
 systempwd="/lib/systemd/system/"
+your_domain=""
+trojan_passwd=""
 
-install_trojan(){
+applyfor_https(){
     systemctl stop ufw
     systemctl disable ufw
     apt update
     $systemPackage -y install nginx certbot wget unzip zip curl tar  >/dev/null 2>&1
     systemctl enable nginx.service
-    yellow "==========请输入域名============="
-    read your_domain
-    yellow "==========请输入密码============="
-    read trojan_passwd
     
     real_addr=`ping ${your_domain} -c 1 | sed '1{s/[^(]*(//;s/).*//;q}'`
     local_addr=`curl ipv4.icanhazip.com`
@@ -74,9 +72,10 @@ EOF
         green "=========================================="
         exit 1
     fi
-    
+}
+install_trojan(){
     cd /srv
-    wget https://github.com/trojan-gfw/trojan/releases/download/v1.14.0/trojan-1.14.0-linux-amd64.tar.xz
+    wget https://github.com/trojan-gfw/trojan/releases/download/v1.16.0/trojan-1.16.0-linux-amd64.tar.xz
     tar xf trojan-1.*
     rm -rf /srv/trojan/config.json
 	cat > /srv/trojan/config.json <<-EOF
@@ -139,7 +138,6 @@ PrivateTmp=true
 [Install]
 WantedBy=multi-user.target
 EOF
-    
     chmod +x ${systempwd}trojan.service
     systemctl start trojan.service
     systemctl enable trojan.service
@@ -165,7 +163,6 @@ remove_trojan(){
 bbr_boost_sh(){
     bash <(curl -L -s -k "https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh")
 }
-
 start_menu(){
     clear
     green " ===================================="
@@ -179,12 +176,22 @@ start_menu(){
     red " ===================================="
     yellow " 3. 一键卸载 Trojan"
     red " ===================================="
+    yellow " 4. 申请https证书"
+    red " ===================================="
+    yellow " 5. 安装 Trojan"
+    red " ===================================="
     yellow " 0. 退出脚本"
     red " ===================================="
     echo
     read -p "请输入数字:" num
     case "$num" in
         1)
+            yellow "==========请输入域名============="
+            read your_domain
+            yellow "==========请输入密码============="
+            read trojan_passwd
+            applyfor_https
+            
             install_trojan
         ;;
         2)
@@ -192,6 +199,18 @@ start_menu(){
         ;;
         3)
             remove_trojan
+        ;;
+        4)
+            yellow "==========请输入域名============="
+            read your_domain
+            applyfor_https
+        ;;
+        5)
+            yellow "==========请输入域名============="
+            read your_domain
+            yellow "==========请输入密码============="
+            read trojan_passwd
+            install_trojan
         ;;
         0)
             exit 1
@@ -206,3 +225,6 @@ start_menu(){
 }
 
 start_menu
+
+
+# scp -r root@sight.moacs.com:/etc/letsencrypt/ ./ssl
