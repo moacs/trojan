@@ -129,10 +129,10 @@ After=network.target
 
 [Service]
 Type=simple
-PIDFile=/usr/src/trojan/trojan/trojan.pid
-ExecStart=/usr/src/trojan/trojan -c "/usr/src/trojan/config.json"
+PIDFile=/srv/trojan/trojan/trojan.pid
+ExecStart=/srv/trojan/trojan -c "/srv/trojan/config.json"
 ExecReload=
-ExecStop=/usr/src/trojan/trojan
+ExecStop=/srv/trojan/trojan
 PrivateTmp=true
 
 [Install]
@@ -153,7 +153,7 @@ remove_trojan(){
     systemctl disable trojan
     rm -f ${systempwd}trojan.service
     apt autoremove -y nginx
-    rm -rf /usr/src/trojan*
+    rm -rf /srv/trojan*
     rm -rf /usr/share/nginx/html/*
     green "=============="
     green "trojan删除完毕"
